@@ -1,0 +1,15 @@
+name = "utf8-f"
+version = "0.1.0"
+license = "license"
+author = "St Maxwell"
+maintainer = "st_maxwell@outlook.com"
+copyright = "Copyright 2022, St Maxwell"
+[build]
+auto-executables = true
+auto-tests = true
+auto-examples = true
+[install]
+library = false
+
+[dev-dependencies]
+test-drive.git = "https://github.com/fortran-lang/test-drive.git"
