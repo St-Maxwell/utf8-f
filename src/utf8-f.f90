@@ -15,6 +15,17 @@ module utf8
         procedure :: utf8_slice
         procedure :: utf8_index
         procedure :: utf8_reverse
+        procedure :: iterator
+    end type
+
+    type :: utf8_string_iterator
+        private
+        character(len=:, kind=c_char), pointer :: ptr => null()
+        !character(len=:, kind=c_char), pointer :: cur => null()
+        integer :: cur = 1
+    contains
+        procedure :: has_next => iterator_has_next
+        procedure :: get_next => iterator_get_next
     end type
 
     interface construct_utf8_string
@@ -141,6 +152,36 @@ contains
         end do
 
     end subroutine utf8_reverse
+
+    function iterator(this) result(itr)
+        class(utf8_string), target, intent(in) :: this
+        type(utf8_string_iterator) :: itr
+
+        itr%ptr => this%str
+
+    end function iterator
+
+!> iterator methods
+
+    pure function iterator_has_next(this) result(r)
+        class(utf8_string_iterator), intent(in) :: this
+        logical :: r
+
+        r = this%cur <= len(this%ptr)
+
+    end function iterator_has_next
+
+    function iterator_get_next(this) result(cp)
+        class(utf8_string_iterator), intent(inout) :: this
+        !character(len=:, kind=c_char), pointer :: cp
+        character(len=:, kind=c_char), allocatable :: cp
+        integer :: n
+
+        n = codepoint_num_bytes(cast_byte(this%ptr(this%cur:this%cur)))
+        cp = this%ptr(this%cur:this%cur+n-1)
+        this%cur = this%cur + n
+
+    end function iterator_get_next
 
 !> private helper function
 
