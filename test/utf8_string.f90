@@ -3,7 +3,8 @@ module utf8_test_utf8_string
     use utf8
     implicit none
     private
-    public :: collect_utf8_len, collect_utf8_at, collect_utf8_reverse
+    public :: collect_utf8_len, collect_utf8_at, collect_utf8_reverse, &
+              collect_utf8_slice, collect_utf8_index
 
 contains
 
@@ -189,5 +190,122 @@ contains
         call check(error, s%str, "应反的动移中系体轭共π在键σ种一是应反移迁σ")
 
     end subroutine utf8_reverse_5
+
+
+    subroutine collect_utf8_slice(testsuite)
+        type(unittest_type), allocatable, intent(out) :: testsuite(:)
+
+        testsuite = [ &
+                    new_unittest("utf8_slice_1", utf8_slice_1), &
+                    new_unittest("utf8_slice_2", utf8_slice_2), &
+                    new_unittest("utf8_slice_3", utf8_slice_3), &
+                    new_unittest("utf8_slice_4", utf8_slice_4), &
+                    new_unittest("utf8_slice_5", utf8_slice_5) &
+                    ]
+
+    end subroutine collect_utf8_slice
+
+    subroutine utf8_slice_1(error)
+        !> Error handling
+        type(error_type), allocatable, intent(out) :: error
+        type(utf8_string) :: s
+
+        call construct_utf8_string(s, "一二三四五六七八九十")
+        call check(error, s%utf8_slice(3, 5), "三四五")
+
+    end subroutine utf8_slice_1
+
+    subroutine utf8_slice_2(error)
+        !> Error handling
+        type(error_type), allocatable, intent(out) :: error
+        type(utf8_string) :: s
+
+        call construct_utf8_string(s, "一二三四五六七八九十")
+        call check(error, s%utf8_slice(0, 2), "一二")
+
+    end subroutine utf8_slice_2
+
+    subroutine utf8_slice_3(error)
+        !> Error handling
+        type(error_type), allocatable, intent(out) :: error
+        type(utf8_string) :: s
+
+        call construct_utf8_string(s, "一二三四五六七八九十")
+        call check(error, s%utf8_slice(8, 11), "八九十")
+
+    end subroutine utf8_slice_3
+
+    subroutine utf8_slice_4(error)
+        !> Error handling
+        type(error_type), allocatable, intent(out) :: error
+        type(utf8_string) :: s
+
+        call construct_utf8_string(s, "一二三四五六七八九十")
+        call check(error, s%utf8_slice(5,2), "")
+
+    end subroutine utf8_slice_4
+
+    subroutine utf8_slice_5(error)
+        !> Error handling
+        type(error_type), allocatable, intent(out) :: error
+        type(utf8_string) :: s
+
+        call construct_utf8_string(s, "नमस्ते")
+        call check(error, s%utf8_slice(3,5), "स्त")
+
+    end subroutine utf8_slice_5
+
+
+    subroutine collect_utf8_index(testsuite)
+        type(unittest_type), allocatable, intent(out) :: testsuite(:)
+
+        testsuite = [ &
+                    new_unittest("utf8_index_1", utf8_index_1), &
+                    new_unittest("utf8_index_2", utf8_index_2), &
+                    new_unittest("utf8_index_3", utf8_index_3), &
+                    new_unittest("utf8_index_4", utf8_index_4) &
+                    ]
+
+    end subroutine collect_utf8_index
+
+    subroutine utf8_index_1(error)
+        !> Error handling
+        type(error_type), allocatable, intent(out) :: error
+        type(utf8_string) :: s
+
+        call construct_utf8_string(s, "一二三四五六七八九十")
+        call check(error, s%utf8_index("三四五"), 3)
+
+    end subroutine utf8_index_1
+
+    subroutine utf8_index_2(error)
+        !> Error handling
+        type(error_type), allocatable, intent(out) :: error
+        type(utf8_string) :: s
+
+        call construct_utf8_string(s, "नमस्ते")
+        call check(error, s%utf8_index("स्त"), 3)
+
+    end subroutine utf8_index_2
+
+    subroutine utf8_index_3(error)
+        !> Error handling
+        type(error_type), allocatable, intent(out) :: error
+        type(utf8_string) :: s
+
+        call construct_utf8_string(s, "一二三四五六七八九十")
+        call check(error, s%utf8_index("123"), 0)
+
+    end subroutine utf8_index_3
+
+    subroutine utf8_index_4(error)
+        !> Error handling
+        type(error_type), allocatable, intent(out) :: error
+        type(utf8_string) :: s
+
+        call construct_utf8_string(s, "abcd")
+        call check(error, s%utf8_index("ａｂ"), 0)
+
+    end subroutine utf8_index_4
 
 end module utf8_test_utf8_string

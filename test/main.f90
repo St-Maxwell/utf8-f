@@ -14,7 +14,9 @@ program utf8_test
                  new_testsuite("test_numbytes_codepoint", collect_numbytes_codepoint), &
                  new_testsuite("test_utf8_len", collect_utf8_len), &
                  new_testsuite("test_utf8_at", collect_utf8_at), &
-                 new_testsuite("test_utf8_reverse", collect_utf8_reverse) &
+                 new_testsuite("test_utf8_reverse", collect_utf8_reverse), &
+                 new_testsuite("test_utf8_slice", collect_utf8_slice), &
+                 new_testsuite("test_utf8_index", collect_utf8_index) &
                  ]
 
     do is = 1, size(testsuites)
@@ -26,4 +28,5 @@ program utf8_test
         write (error_unit, '(i0, 1x, a)') stat, "test(s) failed!"
         error stop
     end if
+
 end program utf8_test

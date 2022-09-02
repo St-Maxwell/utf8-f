@@ -61,7 +61,7 @@ contains
         type(utf8_string), intent(out) :: this
         character(len=*), intent(in) :: string
 
-        allocate(this%str, source=string)
+        allocate (this%str, source=string)
 
     end subroutine construct_utf8_string_from_string
 
@@ -106,13 +106,18 @@ contains
         character(len=:, kind=c_char), allocatable :: s
         integer :: i, j, n
 
+        if (idx < 1) then
+            allocate (character(len=0, kind=c_char) :: s); return
+        end if
+
         i = 1; j = 1
         do
-            if (i > this%len()) exit
+            if (i > this%len()) then
+                allocate (character(len=0, kind=c_char) :: s); return
+            end if
             n = codepoint_num_bytes(cast_byte(this%str(i:i)))
             if (j == idx) then
-                allocate(s, source=this%str(i:i+n-1))
-                exit
+                allocate (s, source=this%str(i:i + n - 1)); return
             end if
             i = i + n
             j = j + 1
@@ -120,33 +125,83 @@ contains
 
     end function utf8_at
 
-    pure function utf8_slice(this, begin, end) result(substr)
+    pure function utf8_slice(this, begin, end) result(slice)
         class(utf8_string), intent(in) :: this
         integer, intent(in) :: begin
         integer, intent(in) :: end
-        character(len=:, kind=c_char), allocatable :: substr
+        character(len=:, kind=c_char), allocatable :: slice
+        integer :: bi, bj ! byte index for begin (i) and end (j)
+        integer :: ci, cj ! codepoint index for begin (i) and end (j)
+        integer :: n
+
+        if (begin > end .or. begin > this%len() .or. end < 1) then
+            allocate (character(len=0, kind=c_char) :: slice); return
+        end if
+
+        bi = 1; ci = 1
+        if (begin > 1) then
+            do
+                if (ci == begin) exit
+                if (bi > this%len()) then
+                    allocate (character(len=0, kind=c_char) :: slice); return
+                end if
+                n = codepoint_num_bytes(cast_byte(this%str(bi:bi)))
+                bi = bi + n
+                ci = ci + 1
+            end do
+        end if
+
+        bj = bi; cj = ci
+        do
+            if (bj > this%len()) then
+                allocate (slice, source=this%str(bi:)); return
+            end if
+            n = codepoint_num_bytes(cast_byte(this%str(bi:bi)))
+            if (cj == end) then
+                allocate (slice, source=this%str(bi:bj + n - 1)); return
+            end if
+            bj = bj + n
+            cj = cj + 1
+        end do
+
     end function utf8_slice
 
     pure function utf8_index(this, substring) result(idx)
         class(utf8_string), intent(in) :: this
         character(len=*, kind=c_char), intent(in) :: substring
         integer :: idx
+        integer :: bit, cit
+        integer :: nt, ls
+
+        idx = 0
+        bit = 1; cit = 1
+        ls = len(substring)
+        do
+            if (bit + ls - 1 > this%len()) exit
+            if (this%str(bit:bit+ls-1) == substring(:)) then
+                idx = cit; return
+            end if
+            nt = codepoint_num_bytes(cast_byte(this%str(bit:bit)))
+            bit = bit + nt
+            cit = cit + 1
+        end do
+
     end function utf8_index
 
     subroutine utf8_reverse(this)
         class(utf8_string), intent(inout) :: this
         character(len=:, kind=c_char), allocatable :: tmp
         integer :: i, j, l, n
-    
+
         l = this%len()
         call move_alloc(from=this%str, to=tmp)
-        allocate(character(len=l, kind=c_char) :: this%str)
+        allocate (character(len=l, kind=c_char) :: this%str)
 
         i = 1; j = l
         do
             if (i > l) exit
             n = codepoint_num_bytes(cast_byte(tmp(i:i)))
-            this%str(j-n+1:j) = tmp(i:i+n-1)
+            this%str(j - n + 1:j) = tmp(i:i + n - 1)
             i = i + n
             j = j - n
         end do
@@ -178,7 +233,7 @@ contains
         integer :: n
 
         n = codepoint_num_bytes(cast_byte(this%ptr(this%cur:this%cur)))
-        cp = this%ptr(this%cur:this%cur+n-1)
+        cp = this%ptr(this%cur:this%cur + n - 1)
         this%cur = this%cur + n
 
     end function iterator_get_next
