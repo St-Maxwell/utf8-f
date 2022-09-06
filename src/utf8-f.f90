@@ -15,6 +15,7 @@ module utf8
         procedure :: utf8_slice
         procedure :: utf8_index
         procedure :: utf8_reverse
+        procedure :: utf8_is_valid
         procedure :: iterator
     end type
 
@@ -237,6 +238,88 @@ contains
         this%cur = this%cur + n
 
     end function iterator_get_next
+
+    pure function utf8_is_valid(this) result(r)
+        class(utf8_string), intent(in) :: this
+        logical :: r
+        integer(kind=c_int8_t) :: byte
+        integer :: i, n
+
+        i = 1
+        do
+            if (i > this%len()) exit
+            byte = cast_byte(this%str(i:i))
+            if (iand(byte,int(z'80',c_int8_t)) == int(z'00',c_int8_t)) then
+                ! first byte: 0xxxxxxx and 00..7F
+                i = i + 1
+            else if (iand(byte,int(z'E0',c_int8_t)) == int(z'C0',c_int8_t) .and. &
+                     iand(byte,int(z'1F',c_int8_t)) > int(z'01',c_int8_t)) then
+                ! first byte: 110yyyyy and C2..DF
+                if (i+1 > this%len()) then
+                    r = .false.; return
+                end if
+                byte = cast_byte(this%str(i+1:i+1))
+                if (iand(byte,int(z'C0',c_int8_t)) /= int(z'80',c_int8_t)) then
+                    ! secpnd byte: 10xxxxxx and 80..BF
+                    r = .false.; return
+                end if
+                i = i + 2
+            else if (iand(byte,int(z'F0',c_int8_t)) == int(z'E0',c_int8_t)) then
+                ! first byte: 1110zzzz and E0..EF
+                if (i+2 > this%len()) then
+                    r = .false.; return
+                end if
+                if (iand(cast_byte(this%str(i+1:i+1)),int(z'C0',c_int8_t)) /= int(z'80',c_int8_t) .or. &
+                    iand(cast_byte(this%str(i+2:i+2)),int(z'C0',c_int8_t)) /= int(z'80',c_int8_t)) then
+                    ! second and third bytes: 10xxxxxx
+                    r = .false.; return
+                end if
+                if (byte == int(z'E0',c_int8_t)) then
+                    if (iand(cast_byte(this%str(i+1:i+1)),int(z'3F',c_int8_t)) < int(z'20',c_int8_t)) then
+                        ! E0  A0..BF  80..BF
+                        r = .false.; return
+                    end if
+                end if
+                if (byte == int(z'ED',c_int8_t)) then
+                    if (iand(cast_byte(this%str(i+1:i+1)),int(z'3F',c_int8_t)) > int(z'1F',c_int8_t)) then
+                        ! ED  80..9F  80..BF
+                        r = .false.; return
+                    end if
+                end if
+                i = i + 3
+            else if (iand(byte,int(z'F8',c_int8_t)) == int(z'F0',c_int8_t) .and. &
+                     iand(byte,int(z'07',c_int8_t)) < int(z'05',c_int8_t)) then
+                ! first byte: 11110uuu and F0..F4
+                if (i+3 > this%len()) then
+                    r = .false.; return
+                end if
+                if (iand(cast_byte(this%str(i+1:i+1)),int(z'C0',c_int8_t)) /= int(z'80',c_int8_t) .or. &
+                    iand(cast_byte(this%str(i+2:i+2)),int(z'C0',c_int8_t)) /= int(z'80',c_int8_t) .or. &
+                    iand(cast_byte(this%str(i+3:i+3)),int(z'C0',c_int8_t)) /= int(z'80',c_int8_t)) then
+                    ! second, third, and last bytes: 10xxxxxx
+                    r = .false.; return
+                end if
+                if (byte == int(z'F0',c_int8_t)) then
+                    if (iand(cast_byte(this%str(i+1:i+1)),int(z'3F',c_int8_t)) < int(z'10',c_int8_t)) then
+                        ! F0  90..BF  80..BF  80..BF
+                        r = .false.; return
+                    end if
+                end if
+                if (byte == int(z'F4',c_int8_t)) then
+                    if (iand(cast_byte(this%str(i+1:i+1)),int(z'3F',c_int8_t)) > int(z'0F',c_int8_t)) then
+                        ! F4  80..8F  80..BF  80..BF
+                        r = .false.; return
+                    end if
+                end if
+                i = i + 4
+            else
+                r = .false.; return
+            end if
+        end do
+
+        r = .true.
+
+    end function utf8_is_valid
 
 !> private helper function
 

@@ -1,10 +1,10 @@
 module utf8_test_utf8_string
     use testdrive
-    use utf8
+    use utf8, i1 => c_int8_t
     implicit none
     private
     public :: collect_utf8_len, collect_utf8_at, collect_utf8_reverse, &
-              collect_utf8_slice, collect_utf8_index
+              collect_utf8_slice, collect_utf8_index, collect_utf8_is_valid
 
 contains
 
@@ -307,5 +307,315 @@ contains
         call check(error, s%utf8_index("ａｂ"), 0)
 
     end subroutine utf8_index_4
+
+
+    subroutine collect_utf8_is_valid(testsuite)
+        type(unittest_type), allocatable, intent(out) :: testsuite(:)
+
+        testsuite = [ &
+                    new_unittest("utf8_is_valid_1", utf8_is_valid_1), &
+                    new_unittest("utf8_is_valid_2", utf8_is_valid_2), &
+                    new_unittest("utf8_is_valid_3", utf8_is_valid_3), &
+                    new_unittest("utf8_is_valid_4", utf8_is_valid_4), &
+                    new_unittest("utf8_is_valid_5", utf8_is_valid_5), &
+                    new_unittest("utf8_is_valid_6", utf8_is_valid_6), &
+                    new_unittest("utf8_is_valid_7", utf8_is_valid_7), &
+                    new_unittest("utf8_is_valid_8", utf8_is_valid_8), &
+                    new_unittest("utf8_is_valid_9", utf8_is_valid_9), &
+                    new_unittest("utf8_is_valid_10", utf8_is_valid_10), &
+                    new_unittest("utf8_is_valid_11", utf8_is_valid_11), &
+                    new_unittest("utf8_is_valid_12", utf8_is_valid_12), &
+                    new_unittest("utf8_is_valid_13", utf8_is_valid_13), &
+                    new_unittest("utf8_is_valid_14", utf8_is_valid_14), &
+                    new_unittest("utf8_is_valid_15", utf8_is_valid_15), &
+                    new_unittest("utf8_is_valid_16", utf8_is_valid_16), &
+                    new_unittest("utf8_is_valid_17", utf8_is_valid_17), &
+                    new_unittest("utf8_is_valid_18", utf8_is_valid_18), &
+                    new_unittest("utf8_is_valid_19", utf8_is_valid_19), &
+                    new_unittest("utf8_is_valid_20", utf8_is_valid_20) &
+                    ]
+
+    end subroutine collect_utf8_is_valid
+
+    subroutine utf8_is_valid_1(error)
+        !> Error handling
+        type(error_type), allocatable, intent(out) :: error
+        type(utf8_string) :: s
+        character(len=1, kind=c_char) :: raw
+
+        !                                  x80
+        raw = transfer([integer(kind=i1)::-128],raw)
+
+        call construct_utf8_string(s, raw)
+        call check(error, s%utf8_is_valid(), .false.)
+
+    end subroutine utf8_is_valid_1
+
+    subroutine utf8_is_valid_2(error)
+        !> Error handling
+        type(error_type), allocatable, intent(out) :: error
+        type(utf8_string) :: s
+        character(len=2, kind=c_char) :: raw
+
+        !                                 xFF x00
+        raw = transfer([integer(kind=i1)::-1,0],raw)
+
+        call construct_utf8_string(s, raw)
+        call check(error, s%utf8_is_valid(), .false.)
+
+    end subroutine utf8_is_valid_2
+
+    subroutine utf8_is_valid_3(error)
+        !> Error handling
+        type(error_type), allocatable, intent(out) :: error
+        type(utf8_string) :: s
+        character(len=3, kind=c_char) :: raw
+
+        !                                 xC2 xFE x00
+        raw = transfer([integer(kind=i1)::-62,-2,0],raw)
+
+        call construct_utf8_string(s, raw)
+        call check(error, s%utf8_is_valid(), .false.)
+
+    end subroutine utf8_is_valid_3
+
+    subroutine utf8_is_valid_4(error)
+        !> Error handling
+        type(error_type), allocatable, intent(out) :: error
+        type(utf8_string) :: s
+        character(len=3, kind=c_char) :: raw
+
+        !                                 xC2 x7F x00
+        raw = transfer([integer(kind=i1)::-62,127,0],raw)
+
+        call construct_utf8_string(s, raw)
+        call check(error, s%utf8_is_valid(), .false.)
+
+    end subroutine utf8_is_valid_4
+
+    subroutine utf8_is_valid_5(error)
+        !> Error handling
+        type(error_type), allocatable, intent(out) :: error
+        type(utf8_string) :: s
+        character(len=1, kind=c_char) :: raw
+
+        !                                 xE0
+        raw = transfer([integer(kind=i1)::-32],raw)
+
+        call construct_utf8_string(s, raw)
+        call check(error, s%utf8_is_valid(), .false.)
+
+    end subroutine utf8_is_valid_5
+
+    subroutine utf8_is_valid_6(error)
+        !> Error handling
+        type(error_type), allocatable, intent(out) :: error
+        type(utf8_string) :: s
+        character(len=4, kind=c_char) :: raw
+
+        !                                 xE0 xA7 xC0 x00
+        raw = transfer([integer(kind=i1)::-32,-89,-64,0],raw)
+
+        call construct_utf8_string(s, raw)
+        call check(error, s%utf8_is_valid(), .false.)
+
+    end subroutine utf8_is_valid_6
+
+    subroutine utf8_is_valid_7(error)
+        !> Error handling
+        type(error_type), allocatable, intent(out) :: error
+        type(utf8_string) :: s
+        character(len=4, kind=c_char) :: raw
+
+        !                                 xE0 xFF xFF xFF
+        raw = transfer([integer(kind=i1)::-32,-1,-1,-1],raw)
+
+        call construct_utf8_string(s, raw)
+        call check(error, s%utf8_is_valid(), .false.)
+
+    end subroutine utf8_is_valid_7
+
+    subroutine utf8_is_valid_8(error)
+        !> Error handling
+        type(error_type), allocatable, intent(out) :: error
+        type(utf8_string) :: s
+        character(len=4, kind=c_char) :: raw
+
+        !                                 xED x71 xA7 x00
+        raw = transfer([integer(kind=i1)::-19,113,-89,0],raw)
+
+        call construct_utf8_string(s, raw)
+        call check(error, s%utf8_is_valid(), .false.)
+
+    end subroutine utf8_is_valid_8
+
+    subroutine utf8_is_valid_9(error)
+        !> Error handling
+        type(error_type), allocatable, intent(out) :: error
+        type(utf8_string) :: s
+        character(len=4, kind=c_char) :: raw
+
+        !                                 xED xA0 xFF xFF
+        raw = transfer([integer(kind=i1)::-19,-96,-1,-1],raw)
+
+        call construct_utf8_string(s, raw)
+        call check(error, s%utf8_is_valid(), .false.)
+
+    end subroutine utf8_is_valid_9
+
+    subroutine utf8_is_valid_10(error)
+        !> Error handling
+        type(error_type), allocatable, intent(out) :: error
+        type(utf8_string) :: s
+        character(len=4, kind=c_char) :: raw
+
+        !                                 xE0 xA7 xA7 x00
+        raw = transfer([integer(kind=i1)::-32,-89,-89,0],raw)
+
+        call construct_utf8_string(s, raw)
+        call check(error, s%utf8_is_valid(), .true.)
+
+    end subroutine utf8_is_valid_10
+
+    subroutine utf8_is_valid_11(error)
+        !> Error handling
+        type(error_type), allocatable, intent(out) :: error
+        type(utf8_string) :: s
+        character(len=1, kind=c_char) :: raw
+
+        !                                 xED
+        raw = transfer([integer(kind=i1)::-19],raw)
+
+        call construct_utf8_string(s, raw)
+        call check(error, s%utf8_is_valid(), .false.)
+
+    end subroutine utf8_is_valid_11
+
+    subroutine utf8_is_valid_12(error)
+        !> Error handling
+        type(error_type), allocatable, intent(out) :: error
+        type(utf8_string) :: s
+        character(len=1, kind=c_char) :: raw
+
+        !                                 xF0
+        raw = transfer([integer(kind=i1)::-16],raw)
+
+        call construct_utf8_string(s, raw)
+        call check(error, s%utf8_is_valid(), .false.)
+
+    end subroutine utf8_is_valid_12
+
+    subroutine utf8_is_valid_13(error)
+        !> Error handling
+        type(error_type), allocatable, intent(out) :: error
+        type(utf8_string) :: s
+        character(len=1, kind=c_char) :: raw
+
+        !                                 xF4
+        raw = transfer([integer(kind=i1)::-12],raw)
+
+        call construct_utf8_string(s, raw)
+        call check(error, s%utf8_is_valid(), .false.)
+
+    end subroutine utf8_is_valid_13
+
+    subroutine utf8_is_valid_14(error)
+        !> Error handling
+        type(error_type), allocatable, intent(out) :: error
+        type(utf8_string) :: s
+        character(len=5, kind=c_char) :: raw
+
+        !                                 xF4 x90  x90  x90  x00
+        raw = transfer([integer(kind=i1)::-12,-112,-112,-112,0],raw)
+
+        call construct_utf8_string(s, raw)
+        call check(error, s%utf8_is_valid(), .false.)
+
+    end subroutine utf8_is_valid_14
+
+    subroutine utf8_is_valid_15(error)
+        !> Error handling
+        type(error_type), allocatable, intent(out) :: error
+        type(utf8_string) :: s
+        character(len=5, kind=c_char) :: raw
+
+        !                                 xF0 x8F  x91  xB5 x00
+        raw = transfer([integer(kind=i1)::-16,-113,-111,-75,0],raw)
+
+        call construct_utf8_string(s, raw)
+        call check(error, s%utf8_is_valid(), .false.)
+
+    end subroutine utf8_is_valid_15
+
+    subroutine utf8_is_valid_16(error)
+        !> Error handling
+        type(error_type), allocatable, intent(out) :: error
+        type(utf8_string) :: s
+        character(len=5, kind=c_char) :: raw
+
+        !                                 xF0 xC7 x91  xB5 x00
+        raw = transfer([integer(kind=i1)::-16,-57,-111,-75,0],raw)
+
+        call construct_utf8_string(s, raw)
+        call check(error, s%utf8_is_valid(), .false.)
+
+    end subroutine utf8_is_valid_16
+
+    subroutine utf8_is_valid_17(error)
+        !> Error handling
+        type(error_type), allocatable, intent(out) :: error
+        type(utf8_string) :: s
+        character(len=5, kind=c_char) :: raw
+
+        !                                 xF4 x7F x91  xB5 x00
+        raw = transfer([integer(kind=i1)::-12,127,-111,-75,0],raw)
+
+        call construct_utf8_string(s, raw)
+        call check(error, s%utf8_is_valid(), .false.)
+
+    end subroutine utf8_is_valid_17
+
+    subroutine utf8_is_valid_18(error)
+        !> Error handling
+        type(error_type), allocatable, intent(out) :: error
+        type(utf8_string) :: s
+        character(len=5, kind=c_char) :: raw
+
+        !                                 xF4 x92  x91  xB5 x00
+        raw = transfer([integer(kind=i1)::-12,-110,-111,-75,0],raw)
+
+        call construct_utf8_string(s, raw)
+        call check(error, s%utf8_is_valid(), .false.)
+
+    end subroutine utf8_is_valid_18
+
+    subroutine utf8_is_valid_19(error)
+        !> Error handling
+        type(error_type), allocatable, intent(out) :: error
+        type(utf8_string) :: s
+        character(len=2, kind=c_char) :: raw
+
+        !                                 xF4 x92
+        raw = transfer([integer(kind=i1)::-12,-110],raw)
+
+        call construct_utf8_string(s, raw)
+        call check(error, s%utf8_is_valid(), .false.)
+
+    end subroutine utf8_is_valid_19
+
+    subroutine utf8_is_valid_20(error)
+        !> Error handling
+        type(error_type), allocatable, intent(out) :: error
+        type(utf8_string) :: s
+        character(len=3, kind=c_char) :: raw
+
+        !                                 xF4 x92  x91
+        raw = transfer([integer(kind=i1)::-12,-110,-111],raw)
+
+        call construct_utf8_string(s, raw)
+        call check(error, s%utf8_is_valid(), .false.)
+
+    end subroutine utf8_is_valid_20
+
 
 end module utf8_test_utf8_string
