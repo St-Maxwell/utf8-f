@@ -1,6 +1,6 @@
 module utf8_test_helper_function
     use testdrive
-    use utf8
+    use utf8_detail
     implicit none
     private
     public :: collect_numbytes_codepoint

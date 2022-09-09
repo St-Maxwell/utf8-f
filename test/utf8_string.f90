@@ -1,10 +1,12 @@
 module utf8_test_utf8_string
     use testdrive
-    use utf8, i1 => c_int8_t
+    use utf8_detail
+    use utf8_const, i1 => c_int8_t
     implicit none
     private
     public :: collect_utf8_len, collect_utf8_at, collect_utf8_reverse, &
-              collect_utf8_slice, collect_utf8_index, collect_utf8_is_valid
+              collect_utf8_slice, collect_utf8_index, collect_utf8_count, &
+              collect_utf8_is_valid
 
 contains
 
@@ -27,7 +29,7 @@ contains
         type(utf8_string) :: s
 
         call construct_utf8_string(s, "Schroedinger's cat")
-        call check(error, s%utf8_len(), 18)
+        call check(error, utf8_len(s), 18)
 
     end subroutine utf8_len_1
 
@@ -37,7 +39,7 @@ contains
         type(utf8_string) :: s
 
         call construct_utf8_string(s, "薛定谔的猫")
-        call check(error, s%utf8_len(), 5)
+        call check(error, utf8_len(s), 5)
 
     end subroutine utf8_len_2
 
@@ -47,7 +49,7 @@ contains
         type(utf8_string) :: s
 
         call construct_utf8_string(s, "☉☽♀♂♁♃☿♄")
-        call check(error, s%utf8_len(), 8)
+        call check(error, utf8_len(s), 8)
 
     end subroutine utf8_len_3
 
@@ -57,7 +59,7 @@ contains
         type(utf8_string) :: s
 
         call construct_utf8_string(s, "😂🐶🐱🍔🖥")
-        call check(error, s%utf8_len(), 5)
+        call check(error, utf8_len(s), 5)
 
     end subroutine utf8_len_4
 
@@ -67,7 +69,7 @@ contains
         type(utf8_string) :: s
 
         call construct_utf8_string(s, "सद्धर्मपुण्डरीकसूत्र")
-        call check(error, s%utf8_len(), 20)
+        call check(error, utf8_len(s), 20)
 
     end subroutine utf8_len_5
 
@@ -89,7 +91,7 @@ contains
         type(utf8_string) :: s
 
         call construct_utf8_string(s, "The Lady Is A Tramp")
-        call check(error, s%utf8_at(8), "y")
+        call check(error, utf8_at(s, 8), "y")
 
     end subroutine utf8_at_1
 
@@ -99,7 +101,7 @@ contains
         type(utf8_string) :: s
 
         call construct_utf8_string(s, "Ievan suu oli vehnäsellä")
-        call check(error, s%utf8_at(24), "ä")
+        call check(error, utf8_at(s, 24), "ä")
 
     end subroutine utf8_at_2
 
@@ -109,7 +111,7 @@ contains
         type(utf8_string) :: s
 
         call construct_utf8_string(s, "沧海一声笑 滔滔两岸潮")
-        call check(error, s%utf8_at(5), "笑")
+        call check(error, utf8_at(s, 5), "笑")
 
     end subroutine utf8_at_3
 
@@ -119,7 +121,7 @@ contains
         type(utf8_string) :: s
 
         call construct_utf8_string(s, "SOS　猿の惑星そう　結果 we are ape")
-        call check(error, s%utf8_at(12), "結")
+        call check(error, utf8_at(s, 12), "結")
 
     end subroutine utf8_at_4
 
@@ -140,10 +142,12 @@ contains
         !> Error handling
         type(error_type), allocatable, intent(out) :: error
         type(utf8_string) :: s
+        character(len=:, kind=c_char), allocatable :: chr
 
         call construct_utf8_string(s, "Fortran")
-        call s%utf8_reverse()
-        call check(error, s%str, "nartroF")
+        call utf8_reverse(s)
+        chr = s
+        call check(error, chr, "nartroF")
 
     end subroutine utf8_reverse_1
 
@@ -151,10 +155,12 @@ contains
         !> Error handling
         type(error_type), allocatable, intent(out) :: error
         type(utf8_string) :: s
+        character(len=:, kind=c_char), allocatable :: chr
 
         call construct_utf8_string(s, "⏱")
-        call s%utf8_reverse()
-        call check(error, s%str, "⏱")
+        call utf8_reverse(s)
+        chr = s
+        call check(error, chr, "⏱")
 
     end subroutine utf8_reverse_2
 
@@ -162,10 +168,12 @@ contains
         !> Error handling
         type(error_type), allocatable, intent(out) :: error
         type(utf8_string) :: s
+        character(len=:, kind=c_char), allocatable :: chr
 
         call construct_utf8_string(s, "🌒🌓🌔🌕🌖🌗🌘")
-        call s%utf8_reverse()
-        call check(error, s%str, "🌘🌗🌖🌕🌔🌓🌒")
+        call utf8_reverse(s)
+        chr = s
+        call check(error, chr, "🌘🌗🌖🌕🌔🌓🌒")
 
     end subroutine utf8_reverse_3
 
@@ -173,10 +181,12 @@ contains
         !> Error handling
         type(error_type), allocatable, intent(out) :: error
         type(utf8_string) :: s
+        character(len=:, kind=c_char), allocatable :: chr
 
         call construct_utf8_string(s, "नमस्ते")
-        call s%utf8_reverse()
-        call check(error, s%str, "ेत्समन")
+        call utf8_reverse(s)
+        chr = s
+        call check(error, chr, "ेत्समन")
 
     end subroutine utf8_reverse_4
 
@@ -184,13 +194,14 @@ contains
         !> Error handling
         type(error_type), allocatable, intent(out) :: error
         type(utf8_string) :: s
+        character(len=:, kind=c_char), allocatable :: chr
 
         call construct_utf8_string(s, "σ迁移反应是一种σ键在π共轭体系中移动的反应")
-        call s%utf8_reverse()
-        call check(error, s%str, "应反的动移中系体轭共π在键σ种一是应反移迁σ")
+        call utf8_reverse(s)
+        chr = s
+        call check(error, chr, "应反的动移中系体轭共π在键σ种一是应反移迁σ")
 
     end subroutine utf8_reverse_5
-
 
     subroutine collect_utf8_slice(testsuite)
         type(unittest_type), allocatable, intent(out) :: testsuite(:)
@@ -211,7 +222,7 @@ contains
         type(utf8_string) :: s
 
         call construct_utf8_string(s, "一二三四五六七八九十")
-        call check(error, s%utf8_slice(3, 5), "三四五")
+        call check(error, utf8_slice(s, 3, 5), "三四五")
 
     end subroutine utf8_slice_1
 
@@ -221,7 +232,7 @@ contains
         type(utf8_string) :: s
 
         call construct_utf8_string(s, "一二三四五六七八九十")
-        call check(error, s%utf8_slice(0, 2), "一二")
+        call check(error, utf8_slice(s, 0, 2), "一二")
 
     end subroutine utf8_slice_2
 
@@ -231,7 +242,7 @@ contains
         type(utf8_string) :: s
 
         call construct_utf8_string(s, "一二三四五六七八九十")
-        call check(error, s%utf8_slice(8, 11), "八九十")
+        call check(error, utf8_slice(s, 8, 11), "八九十")
 
     end subroutine utf8_slice_3
 
@@ -241,7 +252,7 @@ contains
         type(utf8_string) :: s
 
         call construct_utf8_string(s, "一二三四五六七八九十")
-        call check(error, s%utf8_slice(5,2), "")
+        call check(error, utf8_slice(s, 5, 2), "")
 
     end subroutine utf8_slice_4
 
@@ -251,10 +262,9 @@ contains
         type(utf8_string) :: s
 
         call construct_utf8_string(s, "नमस्ते")
-        call check(error, s%utf8_slice(3,5), "स्त")
+        call check(error, utf8_slice(s, 3, 5), "स्त")
 
     end subroutine utf8_slice_5
-
 
     subroutine collect_utf8_index(testsuite)
         type(unittest_type), allocatable, intent(out) :: testsuite(:)
@@ -274,7 +284,7 @@ contains
         type(utf8_string) :: s
 
         call construct_utf8_string(s, "一二三四五六七八九十")
-        call check(error, s%utf8_index("三四五"), 3)
+        call check(error, utf8_index(s, "三四五"), 3)
 
     end subroutine utf8_index_1
 
@@ -284,7 +294,7 @@ contains
         type(utf8_string) :: s
 
         call construct_utf8_string(s, "नमस्ते")
-        call check(error, s%utf8_index("स्त"), 3)
+        call check(error, utf8_index(s, "स्त"), 3)
 
     end subroutine utf8_index_2
 
@@ -294,7 +304,7 @@ contains
         type(utf8_string) :: s
 
         call construct_utf8_string(s, "一二三四五六七八九十")
-        call check(error, s%utf8_index("123"), 0)
+        call check(error, utf8_index(s, "123"), 0)
 
     end subroutine utf8_index_3
 
@@ -304,10 +314,78 @@ contains
         type(utf8_string) :: s
 
         call construct_utf8_string(s, "abcd")
-        call check(error, s%utf8_index("ａｂ"), 0)
+        call check(error, utf8_index(s, "ａｂ"), 0)
 
     end subroutine utf8_index_4
 
+    subroutine collect_utf8_count(testsuite)
+        type(unittest_type), allocatable, intent(out) :: testsuite(:)
+
+        testsuite = [ &
+                    new_unittest("utf8_count_1", utf8_count_1), &
+                    new_unittest("utf8_count_2", utf8_count_2), &
+                    new_unittest("utf8_count_3", utf8_count_3), &
+                    new_unittest("utf8_count_4", utf8_count_4), &
+                    new_unittest("utf8_count_5", utf8_count_5) &
+                    ]
+
+    end subroutine collect_utf8_count
+
+    subroutine utf8_count_1(error)
+        !> Error handling
+        type(error_type), allocatable, intent(out) :: error
+        type(utf8_string) :: s
+
+        call construct_utf8_string(s, "一二三四五六七八九十")
+        call check(error, utf8_count(s, "三四五"), 1)
+
+    end subroutine utf8_count_1
+
+    subroutine utf8_count_2(error)
+        !> Error handling
+        type(error_type), allocatable, intent(out) :: error
+        type(utf8_string) :: s
+
+        call construct_utf8_string(s, "みなみなみなみなみなみなみ")
+        call check(error, utf8_count(s, "みなみ"), 3)
+
+    end subroutine utf8_count_2
+
+    subroutine utf8_count_3(error)
+        !> Error handling
+        type(error_type), allocatable, intent(out) :: error
+        type(utf8_string) :: s
+
+        call construct_utf8_string(s, &
+            "Was vernünftig ist, das ist wirklich; und was wirklich ist, das ist vernünftig.")
+        call check(error, utf8_count(s, "as"), 4)
+
+    end subroutine utf8_count_3
+
+    subroutine utf8_count_4(error)
+        !> Error handling
+        type(error_type), allocatable, intent(out) :: error
+        type(utf8_string) :: s
+        character(len=2, kind=c_char) :: c
+
+        !                                  xA3 xE2
+        c = transfer([[integer(kind=i1) :: -93, -30]], c)
+
+        !                       x24 xC2 xA3 xE2 x82 xAC
+        call construct_utf8_string(s, "$£€")
+        call check(error, utf8_count(s, c), 0)
+
+    end subroutine utf8_count_4
+
+    subroutine utf8_count_5(error)
+        !> Error handling
+        type(error_type), allocatable, intent(out) :: error
+        type(utf8_string) :: s
+
+        call construct_utf8_string(s, "o(*￣▽￣*)o")
+        call check(error, utf8_count(s, ""), 0)
+
+    end subroutine utf8_count_5
 
     subroutine collect_utf8_is_valid(testsuite)
         type(unittest_type), allocatable, intent(out) :: testsuite(:)
@@ -344,10 +422,10 @@ contains
         character(len=1, kind=c_char) :: raw
 
         !                                  x80
-        raw = transfer([integer(kind=i1)::-128],raw)
+        raw = transfer([integer(kind=i1) :: -128], raw)
 
         call construct_utf8_string(s, raw)
-        call check(error, s%utf8_is_valid(), .false.)
+        call check(error, utf8_is_valid(s), .false.)
 
     end subroutine utf8_is_valid_1
 
@@ -358,10 +436,10 @@ contains
         character(len=2, kind=c_char) :: raw
 
         !                                 xFF x00
-        raw = transfer([integer(kind=i1)::-1,0],raw)
+        raw = transfer([integer(kind=i1) :: -1, 0], raw)
 
         call construct_utf8_string(s, raw)
-        call check(error, s%utf8_is_valid(), .false.)
+        call check(error, utf8_is_valid(s), .false.)
 
     end subroutine utf8_is_valid_2
 
@@ -372,10 +450,10 @@ contains
         character(len=3, kind=c_char) :: raw
 
         !                                 xC2 xFE x00
-        raw = transfer([integer(kind=i1)::-62,-2,0],raw)
+        raw = transfer([integer(kind=i1) :: -62, -2, 0], raw)
 
         call construct_utf8_string(s, raw)
-        call check(error, s%utf8_is_valid(), .false.)
+        call check(error, utf8_is_valid(s), .false.)
 
     end subroutine utf8_is_valid_3
 
@@ -386,10 +464,10 @@ contains
         character(len=3, kind=c_char) :: raw
 
         !                                 xC2 x7F x00
-        raw = transfer([integer(kind=i1)::-62,127,0],raw)
+        raw = transfer([integer(kind=i1) :: -62, 127, 0], raw)
 
         call construct_utf8_string(s, raw)
-        call check(error, s%utf8_is_valid(), .false.)
+        call check(error, utf8_is_valid(s), .false.)
 
     end subroutine utf8_is_valid_4
 
@@ -400,10 +478,10 @@ contains
         character(len=1, kind=c_char) :: raw
 
         !                                 xE0
-        raw = transfer([integer(kind=i1)::-32],raw)
+        raw = transfer([integer(kind=i1) :: -32], raw)
 
         call construct_utf8_string(s, raw)
-        call check(error, s%utf8_is_valid(), .false.)
+        call check(error, utf8_is_valid(s), .false.)
 
     end subroutine utf8_is_valid_5
 
@@ -414,10 +492,10 @@ contains
         character(len=4, kind=c_char) :: raw
 
         !                                 xE0 xA7 xC0 x00
-        raw = transfer([integer(kind=i1)::-32,-89,-64,0],raw)
+        raw = transfer([integer(kind=i1) :: -32, -89, -64, 0], raw)
 
         call construct_utf8_string(s, raw)
-        call check(error, s%utf8_is_valid(), .false.)
+        call check(error, utf8_is_valid(s), .false.)
 
     end subroutine utf8_is_valid_6
 
@@ -428,10 +506,10 @@ contains
         character(len=4, kind=c_char) :: raw
 
         !                                 xE0 xFF xFF xFF
-        raw = transfer([integer(kind=i1)::-32,-1,-1,-1],raw)
+        raw = transfer([integer(kind=i1) :: -32, -1, -1, -1], raw)
 
         call construct_utf8_string(s, raw)
-        call check(error, s%utf8_is_valid(), .false.)
+        call check(error, utf8_is_valid(s), .false.)
 
     end subroutine utf8_is_valid_7
 
@@ -442,10 +520,10 @@ contains
         character(len=4, kind=c_char) :: raw
 
         !                                 xED x71 xA7 x00
-        raw = transfer([integer(kind=i1)::-19,113,-89,0],raw)
+        raw = transfer([integer(kind=i1) :: -19, 113, -89, 0], raw)
 
         call construct_utf8_string(s, raw)
-        call check(error, s%utf8_is_valid(), .false.)
+        call check(error, utf8_is_valid(s), .false.)
 
     end subroutine utf8_is_valid_8
 
@@ -456,10 +534,10 @@ contains
         character(len=4, kind=c_char) :: raw
 
         !                                 xED xA0 xFF xFF
-        raw = transfer([integer(kind=i1)::-19,-96,-1,-1],raw)
+        raw = transfer([integer(kind=i1) :: -19, -96, -1, -1], raw)
 
         call construct_utf8_string(s, raw)
-        call check(error, s%utf8_is_valid(), .false.)
+        call check(error, utf8_is_valid(s), .false.)
 
     end subroutine utf8_is_valid_9
 
@@ -470,10 +548,10 @@ contains
         character(len=4, kind=c_char) :: raw
 
         !                                 xE0 xA7 xA7 x00
-        raw = transfer([integer(kind=i1)::-32,-89,-89,0],raw)
+        raw = transfer([integer(kind=i1) :: -32, -89, -89, 0], raw)
 
         call construct_utf8_string(s, raw)
-        call check(error, s%utf8_is_valid(), .true.)
+        call check(error, utf8_is_valid(s), .true.)
 
     end subroutine utf8_is_valid_10
 
@@ -484,10 +562,10 @@ contains
         character(len=1, kind=c_char) :: raw
 
         !                                 xED
-        raw = transfer([integer(kind=i1)::-19],raw)
+        raw = transfer([integer(kind=i1) :: -19], raw)
 
         call construct_utf8_string(s, raw)
-        call check(error, s%utf8_is_valid(), .false.)
+        call check(error, utf8_is_valid(s), .false.)
 
     end subroutine utf8_is_valid_11
 
@@ -498,10 +576,10 @@ contains
         character(len=1, kind=c_char) :: raw
 
         !                                 xF0
-        raw = transfer([integer(kind=i1)::-16],raw)
+        raw = transfer([integer(kind=i1) :: -16], raw)
 
         call construct_utf8_string(s, raw)
-        call check(error, s%utf8_is_valid(), .false.)
+        call check(error, utf8_is_valid(s), .false.)
 
     end subroutine utf8_is_valid_12
 
@@ -512,10 +590,10 @@ contains
         character(len=1, kind=c_char) :: raw
 
         !                                 xF4
-        raw = transfer([integer(kind=i1)::-12],raw)
+        raw = transfer([integer(kind=i1) :: -12], raw)
 
         call construct_utf8_string(s, raw)
-        call check(error, s%utf8_is_valid(), .false.)
+        call check(error, utf8_is_valid(s), .false.)
 
     end subroutine utf8_is_valid_13
 
@@ -526,10 +604,10 @@ contains
         character(len=5, kind=c_char) :: raw
 
         !                                 xF4 x90  x90  x90  x00
-        raw = transfer([integer(kind=i1)::-12,-112,-112,-112,0],raw)
+        raw = transfer([integer(kind=i1) :: -12, -112, -112, -112, 0], raw)
 
         call construct_utf8_string(s, raw)
-        call check(error, s%utf8_is_valid(), .false.)
+        call check(error, utf8_is_valid(s), .false.)
 
     end subroutine utf8_is_valid_14
 
@@ -540,10 +618,10 @@ contains
         character(len=5, kind=c_char) :: raw
 
         !                                 xF0 x8F  x91  xB5 x00
-        raw = transfer([integer(kind=i1)::-16,-113,-111,-75,0],raw)
+        raw = transfer([integer(kind=i1) :: -16, -113, -111, -75, 0], raw)
 
         call construct_utf8_string(s, raw)
-        call check(error, s%utf8_is_valid(), .false.)
+        call check(error, utf8_is_valid(s), .false.)
 
     end subroutine utf8_is_valid_15
 
@@ -554,10 +632,10 @@ contains
         character(len=5, kind=c_char) :: raw
 
         !                                 xF0 xC7 x91  xB5 x00
-        raw = transfer([integer(kind=i1)::-16,-57,-111,-75,0],raw)
+        raw = transfer([integer(kind=i1) :: -16, -57, -111, -75, 0], raw)
 
         call construct_utf8_string(s, raw)
-        call check(error, s%utf8_is_valid(), .false.)
+        call check(error, utf8_is_valid(s), .false.)
 
     end subroutine utf8_is_valid_16
 
@@ -568,10 +646,10 @@ contains
         character(len=5, kind=c_char) :: raw
 
         !                                 xF4 x7F x91  xB5 x00
-        raw = transfer([integer(kind=i1)::-12,127,-111,-75,0],raw)
+        raw = transfer([integer(kind=i1) :: -12, 127, -111, -75, 0], raw)
 
         call construct_utf8_string(s, raw)
-        call check(error, s%utf8_is_valid(), .false.)
+        call check(error, utf8_is_valid(s), .false.)
 
     end subroutine utf8_is_valid_17
 
@@ -582,10 +660,10 @@ contains
         character(len=5, kind=c_char) :: raw
 
         !                                 xF4 x92  x91  xB5 x00
-        raw = transfer([integer(kind=i1)::-12,-110,-111,-75,0],raw)
+        raw = transfer([integer(kind=i1) :: -12, -110, -111, -75, 0], raw)
 
         call construct_utf8_string(s, raw)
-        call check(error, s%utf8_is_valid(), .false.)
+        call check(error, utf8_is_valid(s), .false.)
 
     end subroutine utf8_is_valid_18
 
@@ -596,10 +674,10 @@ contains
         character(len=2, kind=c_char) :: raw
 
         !                                 xF4 x92
-        raw = transfer([integer(kind=i1)::-12,-110],raw)
+        raw = transfer([integer(kind=i1) :: -12, -110], raw)
 
         call construct_utf8_string(s, raw)
-        call check(error, s%utf8_is_valid(), .false.)
+        call check(error, utf8_is_valid(s), .false.)
 
     end subroutine utf8_is_valid_19
 
@@ -610,12 +688,11 @@ contains
         character(len=3, kind=c_char) :: raw
 
         !                                 xF4 x92  x91
-        raw = transfer([integer(kind=i1)::-12,-110,-111],raw)
+        raw = transfer([integer(kind=i1) :: -12, -110, -111], raw)
 
         call construct_utf8_string(s, raw)
-        call check(error, s%utf8_is_valid(), .false.)
+        call check(error, utf8_is_valid(s), .false.)
 
     end subroutine utf8_is_valid_20
-
 
 end module utf8_test_utf8_string

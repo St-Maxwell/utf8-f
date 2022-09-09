@@ -32,7 +32,6 @@ module utf8_detail
         module procedure :: utf8_is_valid_string
     end interface
 
-
 contains
 
     subroutine utf8_construct_from_char(utf8, str, escape)
@@ -68,15 +67,14 @@ contains
     subroutine char_assign_from_utf8(str, utf8)
         character(len=:, kind=c_char), allocatable, intent(out) :: str
         type(utf8_string), intent(in) :: utf8
-        
+
         if (allocated(utf8%str)) then
-            allocate(str, source=utf8%str)
+            allocate (str, source=utf8%str)
         else
-            allocate(character(len=0, kind=c_char) :: str)
+            allocate (character(len=0, kind=c_char) :: str)
         end if
 
     end subroutine char_assign_from_utf8
-
 
     !> return the number of UTF-8 code points
     pure function utf8_len(utf8) result(l)
@@ -119,6 +117,7 @@ contains
 
     end function utf8_at
 
+    !> return a substring of utf8_string
     pure function utf8_slice(utf8, begin, end) result(slice)
         class(utf8_string), intent(in) :: utf8
         integer, intent(in) :: begin
@@ -160,6 +159,7 @@ contains
 
     end function utf8_slice
 
+    !> return the position where substring occurs in utf8_string for the first time
     pure function utf8_index(utf8, substring) result(idx)
         class(utf8_string), intent(in) :: utf8
         character(len=*, kind=c_char), intent(in) :: substring
@@ -172,7 +172,7 @@ contains
         ls = len(substring)
         do
             if (bit + ls - 1 > len(utf8%str)) exit
-            if (utf8%str(bit:bit+ls-1) == substring(:)) then
+            if (utf8%str(bit:bit + ls - 1) == substring(:)) then
                 idx = cit; return
             end if
             nt = codepoint_num_bytes(cast_byte(utf8%str(bit:bit)))
@@ -182,17 +182,52 @@ contains
 
     end function utf8_index
 
+    !> count the substring in utf8_string
+    !> overlaps are not considered
+    !> e.g. utf8_count("AUAUAUAUAUAUAU","AUA") returns 3
+    pure function utf8_count(utf8, substring) result(count)
+        class(utf8_string), intent(in) :: utf8
+        character(len=*, kind=c_char), intent(in) :: substring
+        integer :: count
+
+        if (.not. utf8_is_valid(substring) .or. len(substring) == 0) then
+            count = 0; return
+        end if
+
+        count = count_internal(utf8%str, substring)
+
+    contains
+
+        pure recursive function count_internal(full, sub) result(c)
+            character(len=*, kind=c_char), intent(in) :: full
+            character(len=*, kind=c_char), intent(in) :: sub
+            integer :: c
+            integer :: l, idx
+
+            l = len(sub)
+            idx = index(full, sub)
+            if (idx == 0) then
+                c = 0; return
+            else
+                c = count_internal(full(idx + l:), sub) + 1
+            end if
+
+        end function count_internal
+
+    end function utf8_count
+
     subroutine utf8_split(utf8, sep, list)
         class(utf8_string), intent(in) :: utf8
-        character(len=*,kind=c_char), intent(in) :: sep
+        character(len=*, kind=c_char), intent(in) :: sep
         class(utf8_string), dimension(:), allocatable, intent(out) :: list
 
-        !if (.not. utf8_is_valid(sep)) then
-        !    list = [this%str]; return
-        !end if
+        if (.not. utf8_is_valid(sep)) then
+            list = [utf8]; return
+        end if
 
     end subroutine utf8_split
 
+    !> reverse the order of code points in place
     subroutine utf8_reverse(utf8)
         class(utf8_string), intent(inout) :: utf8
         character(len=:, kind=c_char), allocatable :: tmp
@@ -213,6 +248,7 @@ contains
 
     end subroutine utf8_reverse
 
+    !> return an iterator of utf8_string
     function iterator(this) result(itr)
         class(utf8_string), target, intent(in) :: this
         type(utf8_string_iterator) :: itr
@@ -243,7 +279,7 @@ contains
 
     end function iterator_get_next
 
-
+    !> check if the whole string is valid utf8 encoding
     pure function utf8_is_valid_char(str) result(r)
         character(len=*, kind=c_char), intent(in) :: str
         logical :: r
@@ -254,64 +290,64 @@ contains
         do
             if (i > len(str)) exit
             byte = cast_byte(str(i:i))
-            if (iand(byte,int(z'80',c_int8_t)) == int(z'00',c_int8_t)) then
+            if (iand(byte, int(z'80', c_int8_t)) == int(z'00', c_int8_t)) then
                 ! first byte: 0xxxxxxx and 00..7F
                 i = i + 1
-            else if (iand(byte,int(z'E0',c_int8_t)) == int(z'C0',c_int8_t) .and. &
-                     iand(byte,int(z'1F',c_int8_t)) > int(z'01',c_int8_t)) then
+            else if (iand(byte, int(z'E0', c_int8_t)) == int(z'C0', c_int8_t) .and. &
+                     iand(byte, int(z'1F', c_int8_t)) > int(z'01', c_int8_t)) then
                 ! first byte: 110yyyyy and C2..DF
-                if (i+1 > len(str)) then
+                if (i + 1 > len(str)) then
                     r = .false.; return
                 end if
-                byte = cast_byte(str(i+1:i+1))
-                if (iand(byte,int(z'C0',c_int8_t)) /= int(z'80',c_int8_t)) then
+                byte = cast_byte(str(i + 1:i + 1))
+                if (iand(byte, int(z'C0', c_int8_t)) /= int(z'80', c_int8_t)) then
                     ! secpnd byte: 10xxxxxx and 80..BF
                     r = .false.; return
                 end if
                 i = i + 2
-            else if (iand(byte,int(z'F0',c_int8_t)) == int(z'E0',c_int8_t)) then
+            else if (iand(byte, int(z'F0', c_int8_t)) == int(z'E0', c_int8_t)) then
                 ! first byte: 1110zzzz and E0..EF
-                if (i+2 > len(str)) then
+                if (i + 2 > len(str)) then
                     r = .false.; return
                 end if
-                if (iand(cast_byte(str(i+1:i+1)),int(z'C0',c_int8_t)) /= int(z'80',c_int8_t) .or. &
-                    iand(cast_byte(str(i+2:i+2)),int(z'C0',c_int8_t)) /= int(z'80',c_int8_t)) then
+                if (iand(cast_byte(str(i + 1:i + 1)), int(z'C0', c_int8_t)) /= int(z'80', c_int8_t) .or. &
+                    iand(cast_byte(str(i + 2:i + 2)), int(z'C0', c_int8_t)) /= int(z'80', c_int8_t)) then
                     ! second and third bytes: 10xxxxxx
                     r = .false.; return
                 end if
-                if (byte == int(z'E0',c_int8_t)) then
-                    if (iand(cast_byte(str(i+1:i+1)),int(z'3F',c_int8_t)) < int(z'20',c_int8_t)) then
+                if (byte == int(z'E0', c_int8_t)) then
+                    if (iand(cast_byte(str(i + 1:i + 1)), int(z'3F', c_int8_t)) < int(z'20', c_int8_t)) then
                         ! E0  A0..BF  80..BF
                         r = .false.; return
                     end if
                 end if
-                if (byte == int(z'ED',c_int8_t)) then
-                    if (iand(cast_byte(str(i+1:i+1)),int(z'3F',c_int8_t)) > int(z'1F',c_int8_t)) then
+                if (byte == int(z'ED', c_int8_t)) then
+                    if (iand(cast_byte(str(i + 1:i + 1)), int(z'3F', c_int8_t)) > int(z'1F', c_int8_t)) then
                         ! ED  80..9F  80..BF
                         r = .false.; return
                     end if
                 end if
                 i = i + 3
-            else if (iand(byte,int(z'F8',c_int8_t)) == int(z'F0',c_int8_t) .and. &
-                     iand(byte,int(z'07',c_int8_t)) < int(z'05',c_int8_t)) then
+            else if (iand(byte, int(z'F8', c_int8_t)) == int(z'F0', c_int8_t) .and. &
+                     iand(byte, int(z'07', c_int8_t)) < int(z'05', c_int8_t)) then
                 ! first byte: 11110uuu and F0..F4
-                if (i+3 > len(str)) then
+                if (i + 3 > len(str)) then
                     r = .false.; return
                 end if
-                if (iand(cast_byte(str(i+1:i+1)),int(z'C0',c_int8_t)) /= int(z'80',c_int8_t) .or. &
-                    iand(cast_byte(str(i+2:i+2)),int(z'C0',c_int8_t)) /= int(z'80',c_int8_t) .or. &
-                    iand(cast_byte(str(i+3:i+3)),int(z'C0',c_int8_t)) /= int(z'80',c_int8_t)) then
+                if (iand(cast_byte(str(i + 1:i + 1)), int(z'C0', c_int8_t)) /= int(z'80', c_int8_t) .or. &
+                    iand(cast_byte(str(i + 2:i + 2)), int(z'C0', c_int8_t)) /= int(z'80', c_int8_t) .or. &
+                    iand(cast_byte(str(i + 3:i + 3)), int(z'C0', c_int8_t)) /= int(z'80', c_int8_t)) then
                     ! second, third, and last bytes: 10xxxxxx
                     r = .false.; return
                 end if
-                if (byte == int(z'F0',c_int8_t)) then
-                    if (iand(cast_byte(str(i+1:i+1)),int(z'3F',c_int8_t)) < int(z'10',c_int8_t)) then
+                if (byte == int(z'F0', c_int8_t)) then
+                    if (iand(cast_byte(str(i + 1:i + 1)), int(z'3F', c_int8_t)) < int(z'10', c_int8_t)) then
                         ! F0  90..BF  80..BF  80..BF
                         r = .false.; return
                     end if
                 end if
-                if (byte == int(z'F4',c_int8_t)) then
-                    if (iand(cast_byte(str(i+1:i+1)),int(z'3F',c_int8_t)) > int(z'0F',c_int8_t)) then
+                if (byte == int(z'F4', c_int8_t)) then
+                    if (iand(cast_byte(str(i + 1:i + 1)), int(z'3F', c_int8_t)) > int(z'0F', c_int8_t)) then
                         ! F4  80..8F  80..BF  80..BF
                         r = .false.; return
                     end if
@@ -326,7 +362,6 @@ contains
 
     end function utf8_is_valid_char
 
-    
     pure function utf8_is_valid_string(str) result(r)
         type(utf8_string), intent(in) :: str
         logical :: r
