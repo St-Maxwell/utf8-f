@@ -216,13 +216,30 @@ contains
 
     end function utf8_count
 
+    !> split utf8_string based on the separation string
     subroutine utf8_split(utf8, sep, list)
-        class(utf8_string), intent(in) :: utf8
+        class(utf8_string), intent(in), target :: utf8
         character(len=*, kind=c_char), intent(in) :: sep
-        class(utf8_string), dimension(:), allocatable, intent(out) :: list
+        type(utf8_string), dimension(:), allocatable, intent(out) :: list
+        character(len=:, kind=c_char), pointer :: ptr
+        integer :: nsep, l
+        integer :: i, e
 
-        if (.not. utf8_is_valid(sep)) then
-            list = [utf8]; return
+        nsep = utf8_count(utf8, sep)
+        allocate(list(nsep+1))
+
+        if (nsep == 0) then
+            allocate(list(1)%str, source=utf8%str)
+        else
+            l = len(sep)
+            e = 1
+            ptr => utf8%str(:)
+            do i = 1, nsep
+                e = index(ptr, sep)
+                allocate(list(i)%str, source=ptr(:e-1))
+                ptr => ptr(e+l:)
+            end do
+            allocate(list(nsep+1)%str, source=ptr(:))
         end if
 
     end subroutine utf8_split

@@ -6,7 +6,7 @@ module utf8_test_utf8_string
     private
     public :: collect_utf8_len, collect_utf8_at, collect_utf8_reverse, &
               collect_utf8_slice, collect_utf8_index, collect_utf8_count, &
-              collect_utf8_is_valid
+              collect_utf8_split, collect_utf8_is_valid
 
 contains
 
@@ -357,7 +357,7 @@ contains
         type(utf8_string) :: s
 
         call construct_utf8_string(s, &
-            "Was vernünftig ist, das ist wirklich; und was wirklich ist, das ist vernünftig.")
+                                   "Was vernünftig ist, das ist wirklich; und was wirklich ist, das ist vernünftig.")
         call check(error, utf8_count(s, "as"), 4)
 
     end subroutine utf8_count_3
@@ -386,6 +386,161 @@ contains
         call check(error, utf8_count(s, ""), 0)
 
     end subroutine utf8_count_5
+
+    subroutine collect_utf8_split(testsuite)
+        type(unittest_type), allocatable, intent(out) :: testsuite(:)
+
+        testsuite = [ &
+                    new_unittest("utf8_split_1", utf8_split_1), &
+                    new_unittest("utf8_split_2", utf8_split_2), &
+                    new_unittest("utf8_split_3", utf8_split_3), &
+                    new_unittest("utf8_split_4", utf8_split_4), &
+                    new_unittest("utf8_split_5", utf8_split_5) &
+                    ]
+
+    end subroutine collect_utf8_split
+
+    subroutine utf8_split_1(error)
+        !> Error handling
+        type(error_type), allocatable, intent(out) :: error
+        type(utf8_string) :: s
+        type(utf8_string), dimension(:), allocatable :: list
+        type(utf8_string), dimension(7) :: expect
+        character(len=:, kind=c_char), allocatable :: lhs, rhs
+        integer :: i
+
+        expect(1) = "Je"
+        expect(2) = "n'avais"
+        expect(3) = "pas"
+        expect(4) = "besoin"
+        expect(5) = "de"
+        expect(6) = "cette"
+        expect(7) = "hypothèse-là."
+        call construct_utf8_string(s, "Je n'avais pas besoin de cette hypothèse-là.")
+        call utf8_split(s, ' ', list)
+
+        call check(error, size(list), 7)
+        if (allocated(error)) return
+
+        do i = 1, 7
+            lhs = list(i)
+            rhs = expect(i)
+            call check(error, lhs, rhs)
+            if (allocated(error)) return
+        end do
+
+    end subroutine utf8_split_1
+
+    subroutine utf8_split_2(error)
+        !> Error handling
+        type(error_type), allocatable, intent(out) :: error
+        type(utf8_string) :: s
+        type(utf8_string), dimension(:), allocatable :: list
+        type(utf8_string), dimension(1) :: expect
+        character(len=:, kind=c_char), allocatable :: lhs, rhs
+        integer :: i
+
+        expect(1) = "Je n'avais pas besoin de cette hypothèse-là."
+        call construct_utf8_string(s, "Je n'avais pas besoin de cette hypothèse-là.")
+        call utf8_split(s, '', list)
+
+        call check(error, size(list), 1)
+        if (allocated(error)) return
+
+        do i = 1, 1
+            lhs = list(i)
+            rhs = expect(i)
+            call check(error, lhs, rhs)
+            if (allocated(error)) return
+        end do
+
+    end subroutine utf8_split_2
+
+    subroutine utf8_split_3(error)
+        !> Error handling
+        type(error_type), allocatable, intent(out) :: error
+        type(utf8_string) :: s
+        type(utf8_string), dimension(:), allocatable :: list
+        type(utf8_string), dimension(4) :: expect
+        character(len=:, kind=c_char), allocatable :: lhs, rhs
+        integer :: i
+
+        expect(1) = "设计"
+        expect(2) = "开发"
+        expect(3) = "测试"
+        expect(4) = ""
+        call construct_utf8_string(s, "设计✔开发✔测试✔")
+        call utf8_split(s, '✔', list)
+
+        call check(error, size(list), 4)
+        if (allocated(error)) return
+
+        do i = 1, 4
+            lhs = list(i)
+            rhs = expect(i)
+            call check(error, lhs, rhs)
+            if (allocated(error)) return
+        end do
+
+    end subroutine utf8_split_3
+
+    subroutine utf8_split_4(error)
+        !> Error handling
+        type(error_type), allocatable, intent(out) :: error
+        type(utf8_string) :: s
+        type(utf8_string), dimension(:), allocatable :: list
+        type(utf8_string), dimension(4) :: expect
+        character(len=:, kind=c_char), allocatable :: lhs, rhs
+        integer :: i
+
+        expect(1) = "海水"
+        expect(2) = ""
+        expect(3) = ""
+        expect(4) = "朝落"
+        call construct_utf8_string(s, "海水朝朝朝朝朝朝朝落")
+        call utf8_split(s, '朝朝', list)
+
+        call check(error, size(list), 4)
+        if (allocated(error)) return
+
+        do i = 1, 4
+            lhs = list(i)
+            rhs = expect(i)
+            call check(error, lhs, rhs)
+            if (allocated(error)) return
+        end do
+
+    end subroutine utf8_split_4
+
+    subroutine utf8_split_5(error)
+        !> Error handling
+        type(error_type), allocatable, intent(out) :: error
+        type(utf8_string) :: s
+        character(len=2, kind=c_char) :: c
+        type(utf8_string), dimension(:), allocatable :: list
+        type(utf8_string), dimension(1) :: expect
+        character(len=:, kind=c_char), allocatable :: lhs, rhs
+        integer :: i
+
+        !                                  xA3 xE2
+        c = transfer([[integer(kind=i1) :: -93, -30]], c)
+
+        expect(1) = "£€£€£€£€£€"
+        !                         xC2xA3 xE2x82xAC
+        call construct_utf8_string(s, "£€£€£€£€£€")
+        call utf8_split(s, c, list)
+
+        call check(error, size(list), 1)
+        if (allocated(error)) return
+
+        do i = 1, 1
+            lhs = list(i)
+            rhs = expect(i)
+            call check(error, lhs, rhs)
+            if (allocated(error)) return
+        end do
+
+    end subroutine utf8_split_5
 
     subroutine collect_utf8_is_valid(testsuite)
         type(unittest_type), allocatable, intent(out) :: testsuite(:)

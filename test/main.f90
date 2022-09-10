@@ -18,6 +18,7 @@ program utf8_test
                  new_testsuite("test_utf8_slice", collect_utf8_slice), &
                  new_testsuite("test_utf8_index", collect_utf8_index), &
                  new_testsuite("test_utf8_count", collect_utf8_count), &
+                 new_testsuite("test_utf8_split", collect_utf8_split), &
                  new_testsuite("test_utf8_is_valid", collect_utf8_is_valid) &
                  ]
 
