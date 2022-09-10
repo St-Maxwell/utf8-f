@@ -1,6 +1,7 @@
 module utf8_detail
     use utf8_const
     implicit none
+    public
 
     type :: utf8_string
         private
@@ -387,9 +388,10 @@ contains
 
     end function utf8_is_valid_string
 
-!> private helper function
+!> private helper functions
 
     !> cast char to byte (8-bits integer in Fortran)
+    !> display: private
     pure function cast_byte(char) result(byte)
         character(kind=c_char, len=1), intent(in) :: char
         integer(kind=c_int8_t) :: byte
@@ -399,6 +401,7 @@ contains
     end function cast_byte
 
     !> get the number of bytes of a code point based on its first byte
+    !> display: private
     pure function codepoint_num_bytes(byte) result(n)
         integer(kind=c_int8_t), intent(in) :: byte
         integer :: n

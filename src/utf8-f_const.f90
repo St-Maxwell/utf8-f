@@ -10,6 +10,7 @@ module utf8_const
 
     !> refer to Table 3-7. Well-Formed UTF-8 Byte Sequences
     !> in http://www.unicode.org/versions/Unicode10.0.0/UnicodeStandard-10.0.pdf
+    !> display: private
     integer, dimension(0:255), parameter :: NUM_BYTES_UTF8 = [ &
         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, & ! 0x00..0x0F
         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, & ! 0x10..0x1F
