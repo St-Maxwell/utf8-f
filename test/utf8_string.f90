@@ -357,7 +357,7 @@ contains
         type(utf8_string) :: s
 
         call construct_utf8_string(s, &
-                                   "Was vernünftig ist, das ist wirklich; und was wirklich ist, das ist vernünftig.")
+            "Was vernünftig ist, das ist wirklich; und was wirklich ist, das ist vernünftig.")
         call check(error, utf8_count(s, "as"), 4)
 
     end subroutine utf8_count_3
